@@ -1,0 +1,17 @@
+version: 4.32.0
+
+services:
+  my_db:
+    image: postgres
+    restart: always
+
+    volumes:
+    - ./data/my_db:/var/lib/postgresql/data
+
+    ports:
+    - 5432:5432
+
+    environment:
+    - POSTGRES_DB=crud_DB
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=sapiens 
