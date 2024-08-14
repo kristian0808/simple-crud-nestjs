@@ -3,14 +3,16 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Employee } from './entities/employee.entity';
-import { Repository, Connection, QueryRunner, DataSource } from 'typeorm';
+import { Repository, QueryRunner, DataSource } from 'typeorm';
 import { UserService } from 'src/user/user.service';
 import { UserRepository } from 'src/repositories/user.repositorie';
 import { User } from 'src/user/user.entity';
+// import * as bcrypt from 'bcrypt';
+import { hashPassword } from 'src/utilities/password.util';
+import { plainToClass } from 'class-transformer';
 
 @Injectable()
 export class EmployeeService {
-    userRepository: any;
 
     constructor(
         @InjectRepository(Employee)
@@ -27,8 +29,9 @@ export class EmployeeService {
 
 
         try {
+
             //Create and save user
-            const user = queryRunner.manager.create(User, createEmployeeDto.user)
+            const user = queryRunner.manager.create(User, createEmployeeDto.user);
             const savedUser = await queryRunner.manager.save(user);
 
             //Create and save employee
@@ -41,7 +44,7 @@ export class EmployeeService {
             //Commit the transaction
             await queryRunner.commitTransaction();
 
-            return savedEmployee;
+            return plainToClass(CreateEmployeeDto, savedEmployee);
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
@@ -52,32 +55,53 @@ export class EmployeeService {
     }
 
     findAll() {
-        return `This action returns all employee`;
+        const employee = this.employeeRepository.find({ relations: ['user'] });
+
+        return employee;
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} employee`;
+    async findOne(id: number) {
+        const employee = await this.employeeRepository.findOne({ where: { id }, relations: ['user'] });
+
+        if (!employee) {
+            throw new NotFoundException(`Employee with ID ${id} not found`);
+        }
+
+        return employee
     }
 
-    update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
-        return `This action updates a #${id} employee`;
+
+    async update(id: number, updateEmployeeDto: UpdateEmployeeDto): Promise<UpdateEmployeeDto> {
+        const employee = await this.employeeRepository.findOne({ where: { id } });
+
+        if (!employee) {
+            throw new NotFoundException(`Employee with ID ${id} not found`);
+        }
+
+        // Update employee with the new values
+        this.employeeRepository.merge(employee, updateEmployeeDto);
+
+        const updatedEmployee = await this.employeeRepository.save(employee);
+
+        return plainToClass(UpdateEmployeeDto, updatedEmployee);
     }
+
 
     async remove(id: number): Promise<void> {
         const employee = await this.employeeRepository.findOne({
             where: { id },
             relations: ['user'],
         });
-        
+
         if (!employee) {
             throw new NotFoundException(`Employee with ID ${id} not found`);
         }
 
-        
-        await this.employeeRepository.remove(employee);
+        try {
+            await this.employeeRepository.delete(id);
+        } catch (error) {
+            throw new Error(`Failed to delete employee with ID ${id}: ${error.message}`);
+        }
     }
 
-    async softDelete(id: number): Promise<void> {
-        await this.employeeRepository.softDelete(id);
-    }
 }

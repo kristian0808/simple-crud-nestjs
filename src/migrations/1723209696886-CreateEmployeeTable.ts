@@ -47,8 +47,6 @@ export class CreateEmployeeTable1723209696886 implements MigrationInterface {
             }));
         }
 
-        
-
     public async down(queryRunner: QueryRunner): Promise<void> {
         const table = await queryRunner.getTable("employee");
         const foreignKey = table.foreignKeys.find(fk => fk.columnNames.indexOf("userId") !== -1);

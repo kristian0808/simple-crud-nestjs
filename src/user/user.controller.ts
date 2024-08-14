@@ -4,6 +4,7 @@ import { ApiBody, ApiOperation, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/createUserDto';
 import { OrderByColumn, OrderDirection } from 'src/repositories/user.repositorie';
 import { UpdateUserDto } from './dto/updateUserDto';
+import { ResponseUserDto } from './dto/responseUserDto';
 
 @ApiTags('user')
 @Controller('user')

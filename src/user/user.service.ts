@@ -1,28 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { User } from './user.entity';
 import { CreateUserDto } from './dto/createUserDto';
-import * as bcrypt from 'bcrypt';
 import { plainToClass } from 'class-transformer';
 import { UserRepository, OrderDirection, OrderByColumn } from 'src/repositories/user.repositorie';
 import { UpdateUserDto } from './dto/updateUserDto';
+import { ResponseUserDto } from './dto/responseUserDto';
 
 
 @Injectable()
 export class UserService {
+    restore(id: number) {
+        throw new Error('Method not implemented.');
+    }
     constructor(
         // @InjectRepository(User)
         private userRepository: UserRepository ,
     ) { }
 
-    async create(createUserDto: CreateUserDto): Promise<CreateUserDto> {
-        const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
-        const newUser = this.userRepository.create({
-            ...createUserDto,
-            password: hashedPassword,
-        });
-        return this.userRepository.save(newUser);
+    async create(createUserDto: CreateUserDto): Promise<ResponseUserDto> {
+        const newUser = this.userRepository.create(createUserDto);
+        const savedUser = await this.userRepository.save(newUser);
+        return this.mapToResponseDto(savedUser);
+    }
+
+    private mapToResponseDto(user: User): ResponseUserDto {
+        const { firstName, lastName, email, username } = user;
+        return { firstName, lastName, email, username };
     }
 
     async findAll(
@@ -36,7 +41,7 @@ export class UserService {
         order?: OrderDirection,
         orderByColumn?: OrderByColumn 
     ): Promise<{
-        data: CreateUserDto[],
+        data: ResponseUserDto[],
         total: number,
         page: number,
         limit: number,
@@ -46,7 +51,7 @@ export class UserService {
         const [data, total] = await this.userRepository.findAllWithFilters(page, limit, filters, order, orderByColumn).getManyAndCount();
 
         return { 
-            data: data.map(el=>plainToClass(CreateUserDto, el)), 
+            data: data.map(el=>plainToClass(ResponseUserDto, el)), 
             total: total, 
             page: page, 
             limit: limit, 
@@ -55,16 +60,23 @@ export class UserService {
         };
     }
 
-    async findOne(id: number): Promise<CreateUserDto> {
-        return this.userRepository.findOneOrFail({ where: { id: id } });
+    async findOne(id: number): Promise<ResponseUserDto> {
+        const user = await this.userRepository.findOneOrFail({ where: { id: id } });
+
+        return this.mapToResponseDto(user);
     }
 
-    async update(id: number, updateUserDto: UpdateUserDto): Promise<UpdateUserDto> {
-        if (updateUserDto.password) {
-            updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    async update(id: number, updateUserDto: UpdateUserDto): Promise<ResponseUserDto> {
+        const user = await this.userRepository.findOne({ where: { id: id } });
+
+        if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
         }
-        await this.userRepository.update(id, updateUserDto); //mund te perdoresh dhe save
-        return this.findOne(id);
+
+        const updatedUser = this.userRepository.merge(user, updateUserDto);
+        await this.userRepository.save(updatedUser);
+
+        return this.mapToResponseDto(updatedUser);
     }
 
     async remove(id: number): Promise<void> {

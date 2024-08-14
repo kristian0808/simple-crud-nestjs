@@ -9,6 +9,9 @@ export enum CivilStatus {
 
 @Entity()
 export class Employee {
+    // map(arg0: (el: any) => import("../dto/update-employee.dto").UpdateEmployeeDto): Employee {
+    //     throw new Error('Method not implemented.');
+    // }
 
     @PrimaryGeneratedColumn()
     id: number;
@@ -25,7 +28,7 @@ export class Employee {
     @Column({type: 'enum', enum: CivilStatus, default: CivilStatus.single})
     civilStatus: CivilStatus;
 
-    @OneToOne(() => User, {onDelete: 'CASCADE'})
+    @OneToOne(() => User, {cascade: true, onDelete: 'CASCADE'})
     @JoinColumn()
     user: User;
 }
