@@ -20,6 +20,13 @@ export class EmployeeController {
   findAll() {
     return this.employeeService.findAll();
   }
+  
+  @Get(':id/vacation')
+    async vacation(@Param('id') id: string){
+    
+    const vacationDays = await this.employeeService.calculateVacationDays(+id);
+    return (`Your vacation days are ${vacationDays}`)
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
