@@ -48,7 +48,7 @@ export class EmployeeService {
 
         } catch (error) {
             await queryRunner.rollbackTransaction();
-            throw error;
+            throw new Error(`Failed to create employee: ${error.message}`);
         } finally {
             await queryRunner.release();
         }
@@ -104,4 +104,34 @@ export class EmployeeService {
         }
     }
 
+
+    async calculateVacationDays(id: number): Promise<number> {
+        const employee = await this.employeeRepository.findOne({ where: { id: id }, relations: ['user'] });
+
+        if (!employee) {
+            throw new NotFoundException(`Employee with ID ${id} not found`);
+        }
+
+        //calculate milliseconds for a day
+        const oneDay: number = 24 * 60 * 60 * 1000;
+
+        const today: Date = new Date();
+        const startDate: Date = new Date(employee.startDate);
+        
+        //calculate difference in milliseconds
+        const timeDiff: number = today.getTime() - startDate.getTime();
+
+        //calculate difference in days
+        const daysWorked: number = Math.floor(timeDiff / oneDay);
+
+        //accrued vacation days per year 
+        const vacationDaysPerDay: number = 24 / 365
+        //calculate vacation days based on days worked
+        const vacationDays = daysWorked * vacationDaysPerDay;
+
+        return Math.ceil(vacationDays);
+        
+    }
+        
+    
 }
