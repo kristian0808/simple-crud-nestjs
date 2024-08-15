@@ -22,7 +22,7 @@ export class EmployeeController {
   }
   
   @Get(':id/vacation')
-    async vacation(@Param('id') id: string){
+    async getVacationDays(@Param('id') id: string){
     
     const vacationDays = await this.employeeService.calculateVacationDays(+id);
     return (`Your vacation days are ${vacationDays}`)
